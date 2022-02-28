@@ -3,6 +3,10 @@ from time import sleep
 from cmd import Cmd
 import os
 
+camera = PiCamera()
+# Turn the camera's LED off
+camera.led = False
+
 class PiShell(Cmd):
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
@@ -17,23 +21,22 @@ class PiShell(Cmd):
     def help_exit(self):
         print('Exit the program')
 
-    def do_take_pic(self):
+    def do_take_pic(self,inp):
         camera.capture('/home/pi/Desktop/image.jpg')
 
-    def help_take_pic
+    def help_take_pic(self):
+        print('Takes one picture')
 
-    def do_burst_mode(self):
+    def do_burst_mode(self,inp):
         for i in range(5):
             sleep(5)
             camera.capture('/home/pi/Desktop/image%s.jpg' % i)
+    def help_burst_mode(self):
+        print("Takes 5 pictures")
 
-    do_exit = do_EOF
-    help_exit = help_EOF
-
+    do_EOF = do_exit
+    help_EOF = help_exit
 
 if __name__ = '__main__':
 
-    camera = PiCamera()
-    # Turn the camera's LED off
-    camera.led = False
     PiShell().cmdloop()
