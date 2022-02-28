@@ -10,7 +10,7 @@ camera.led = False
 class PiShell(Cmd):
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
-            "\nPiCube Camera Interface Software"\
+            "\n PiCube Camera Interface Software"\
             "\n Enter help for a list of commands"\
             "\n Enter exit to leave the program"
 
@@ -20,6 +20,12 @@ class PiShell(Cmd):
 
     def help_exit(self):
         print('Exit the program')
+
+    def do_create_dir(self,inp):
+        print("Default: {}".format(inp))
+
+    def help_create_dir(self):
+        print('Create directory for pictures')
 
     def do_take_pic(self,inp):
         camera.capture('/home/pi/Desktop/image.jpg')
@@ -32,11 +38,11 @@ class PiShell(Cmd):
             sleep(5)
             camera.capture('/home/pi/Desktop/image%s.jpg' % i)
     def help_burst_mode(self):
-        print("Takes 5 pictures")
+        print('Takes 5 pictures')
 
     do_EOF = do_exit
     help_EOF = help_exit
 
-if __name__ = '__main__':
+if __name__ == '__main__':
 
     PiShell().cmdloop()
