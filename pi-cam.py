@@ -1,9 +1,11 @@
 from picamera import PiCamera
+from datetime import datetime
 from time import sleep
 from cmd import Cmd
 import os
 
-path = '/home/pi/Documents'
+
+default_path = '/home/pi/Documents/'
 camera = PiCamera()
 # Turn the camera's LED off
 camera.led = False
@@ -20,32 +22,44 @@ class PiShell(Cmd):
         return True
 
     def help_exit(self):
-        print('Exit the program')
+        print(f'Exit the program')
 
     def do_create_dir(self,inp):
-        path = '/home/pi/Documents/' + inp
-        os.mkdir(path)
-        print(f'Created directory : {path}')
+        path =  default_path + inp
+        if (os.path.isfile(path) == False):
+            os.mkdir(path)
+            print(f'Created directory : {path}')
+        else:
+            print(f'Directory Already Exists')
 
     def help_create_dir(self):
-        print('Create directory for pictures')
+        print(f'Syntax : create_dir [folder name]')
+        print(f'Create directory for pictures')
 
     def do_take_pic(self,inp):
-        camera.capture('/home/pi/Desktop/image.jpg')
+        if (inp == 'ts'):
+            now = datetime.now()
+            dt_string = now.strftime("%d/%m/%Y-%H:%M:%S")
+            # Use Timestamp as image name
+            image_path = default_path + dt_string + '.jpg'
+        elif (inp == 'gps'):    
+            # Use GPS location as image name - Future addition
+            image_path = default_path + 'gps.jpg'
+        camera.capture(image_path)
 
     def help_take_pic(self):
-        print('Takes one picture')
+        print(f'Takes one picture')
 
     def do_burst_mode(self, inp):
         arg = parse(inp)
         for i in range(arg[0]):
             sleep(arg[1])
-            image_path = path + 'image%s.jpg'
+            image_path = default_path + 'image%s.jpg'
             camera.capture(image_path % i)
 
     def help_burst_mode(self):
-        print('Synatx : burst_mode [X] [Y]')
-        print('Captures total of X pictures; one picture every Y seconds')
+        print(f'Synatx : burst_mode [X] [Y]')
+        print(f'Captures total of X pictures; one picture every Y seconds')
 
     do_EOF = do_exit
     help_EOF = help_exit
