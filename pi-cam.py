@@ -3,6 +3,7 @@ from time import sleep
 from cmd import Cmd
 import os
 
+path = '/home/pi/Documents'
 camera = PiCamera()
 # Turn the camera's LED off
 camera.led = False
@@ -22,7 +23,9 @@ class PiShell(Cmd):
         print('Exit the program')
 
     def do_create_dir(self,inp):
-        print("Default: {}".format(inp))
+        path = '/home/pi/Documents/' + inp
+        os.mkdir(path)
+        print(f'Created directory : {path}')
 
     def help_create_dir(self):
         print('Create directory for pictures')
@@ -33,7 +36,7 @@ class PiShell(Cmd):
     def help_take_pic(self):
         print('Takes one picture')
 
-    def do_burst_mode(self,inp):
+    def do_burst_mode(self,inp1, inp2):
         for i in range(5):
             sleep(5)
             camera.capture('/home/pi/Desktop/image%s.jpg' % i)
