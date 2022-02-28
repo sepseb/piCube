@@ -36,17 +36,23 @@ class PiShell(Cmd):
     def help_take_pic(self):
         print('Takes one picture')
 
-    def do_burst_mode(self,inp1, inp2):
-        for i in range(inp1):
-            sleep(inp2)
+    def do_burst_mode(self, inp):
+        arg = parse(inp)
+        for i in range(arg[0]):
+            sleep(arg[1])
             image_path = path + 'image%s.jpg'
-            camera.capture(image_path % inp1)
+            camera.capture(image_path % i)
+
     def help_burst_mode(self):
         print('Synatx : burst_mode [X] [Y]')
         print('Captures total of X pictures; one picture every Y seconds')
 
     do_EOF = do_exit
     help_EOF = help_exit
+
+def parse(arg):
+    'Convert a series of zero or more numbers to an argument tuple'
+    return tuple(map(int, arg.split()))
 
 if __name__ == '__main__':
 
