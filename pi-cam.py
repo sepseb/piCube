@@ -37,11 +37,13 @@ class PiShell(Cmd):
         print('Takes one picture')
 
     def do_burst_mode(self,inp1, inp2):
-        for i in range(5):
-            sleep(5)
-            camera.capture('/home/pi/Desktop/image%s.jpg' % i)
+        for i in range(inp1):
+            sleep(inp2)
+            image_path = path + 'image%s.jpg'
+            camera.capture(image_path % inp1)
     def help_burst_mode(self):
-        print('Takes 5 pictures')
+        print('Synatx : burst_mode [X] [Y]')
+        print('Captures total of X pictures; one picture every Y seconds')
 
     do_EOF = do_exit
     help_EOF = help_exit
