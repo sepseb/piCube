@@ -7,11 +7,13 @@ from cmd import Cmd
 import subprocess
 import os
 
-default_path = '/home/pi/Documents/'
-session_path = '/home/pi/Documents/'
+
 camera = PiCamera()
 
 class PiShell(Cmd):
+    default_path = '/home/pi/Documents/'
+    session_path = '/home/pi/Documents/'
+        
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
             "\n PiCube Interface Program"\
@@ -41,7 +43,7 @@ class PiShell(Cmd):
     def do_capture(self,inp):
         if (inp == 'ts'):
             now = datetime.now()
-            dt_string = now.strftime("%d%m%Y_%H%M%S")
+            dt_string = now.strftime("%m/%d/%Y-%H:%M:%S")
             # Use Timestamp as image name
             image_path = default_path + dt_string + '.jpg'
         elif (inp == 'gps'):    
