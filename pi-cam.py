@@ -29,7 +29,7 @@ class PiShell(Cmd):
 
     def do_new_session(self,inp):
         session_path =  default_path + inp
-        if (os.path.isfile(path) == False):
+        if (os.path.isfile(session_path) == False):
             os.mkdir(session_path)
             print(f'Created directory : {session_path}')
         else:
@@ -38,6 +38,11 @@ class PiShell(Cmd):
     def help_new_session(self):
         print(f'Syntax : new_session [folder name]')
         print(f'Creates a new folder in Documents')
+
+    try:
+        subprocess.Popen([do_new_session], stdout = subprocess.PIPE)
+    except OSError as error:
+        print(error.errno) #for exit code      
 
     def do_capture(self,inp):
         if (inp == 'ts'):
@@ -73,6 +78,8 @@ class PiShell(Cmd):
 
     def help_transfer(self):
         print(f'Transfers images to the computer')
+
+      
 
 def parse(arg):
     'Convert a series of zero or more numbers to an argument tuple'
