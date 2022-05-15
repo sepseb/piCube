@@ -7,13 +7,13 @@ from cmd import Cmd
 import subprocess
 import os
 
+default_path = '/home/pi/Documents/'
+global session_path
 
 camera = PiCamera()
 
 class PiShell(Cmd):
-    default_path = '/home/pi/Documents/'
-    session_path = '/home/pi/Documents/'
-        
+
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
             "\n PiCube Interface Program"\
@@ -28,11 +28,10 @@ class PiShell(Cmd):
         print(f'Exit the program')
 
     def do_new_session(self,inp):
-        path =  default_path + inp
+        session_path =  default_path + inp
         if (os.path.isfile(path) == False):
-            os.mkdir(path)
-            session_path = path
-            print(f'Created directory : {path}')
+            os.mkdir(session_path)
+            print(f'Created directory : {session_path}')
         else:
             print(f'Directory Already Exists')
 
@@ -45,10 +44,10 @@ class PiShell(Cmd):
             now = datetime.now()
             dt_string = now.strftime("%m/%d/%Y-%H:%M:%S")
             # Use Timestamp as image name
-            image_path = default_path + dt_string + '.jpg'
-        elif (inp == 'gps'):    
+            image_path = session_path + dt_string + '.jpg'
+        elif (inp == 'gps'):
             # Use GPS location as image name - Future addition
-            image_path = default_path + 'gps.jpg'
+            image_path = session_path + 'gps.jpg'
         camera.capture(image_path)
 
     def help_capture(self):
@@ -73,7 +72,7 @@ class PiShell(Cmd):
         subprocess.run(["scp", 'FILE', "USER@SERVER:PATH"])
 
     def help_transfer(self):
-        print(f'Transfers images to the computer')    
+        print(f'Transfers images to the computer')
 
 def parse(arg):
     'Convert a series of zero or more numbers to an argument tuple'
