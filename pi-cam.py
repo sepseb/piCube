@@ -1,5 +1,6 @@
 from email.policy import default
 from importlib.resources import path
+from ssl import SSLSession
 from picamera import PiCamera
 from datetime import datetime
 from time import sleep
@@ -8,7 +9,6 @@ import subprocess
 import os
 
 default_path = '/home/pi/Documents/'
-global session_path
 
 camera = PiCamera()
 
@@ -28,6 +28,7 @@ class PiShell(Cmd):
         print(f'Exit the program')
 
     def do_new_session(self,inp):
+        global session_path
         session_path =  default_path + inp
         if (os.path.isfile(session_path) == False):
             os.mkdir(session_path)
@@ -39,12 +40,8 @@ class PiShell(Cmd):
         print(f'Syntax : new_session [folder name]')
         print(f'Creates a new folder in Documents')
 
-    try:
-        subprocess.Popen([do_new_session], stdout = subprocess.PIPE)
-    except OSError as error:
-        print(error.errno) #for exit code      
-
     def do_capture(self,inp):
+        global session_path
         if (inp == 'ts'):
             now = datetime.now()
             dt_string = now.strftime("%m/%d/%Y-%H:%M:%S")
