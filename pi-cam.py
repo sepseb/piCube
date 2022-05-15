@@ -29,7 +29,7 @@ class PiShell(Cmd):
 
     def do_new_session(self,inp):
         global session_path
-        session_path =  default_path + inp
+        session_path =  default_path + inp + '/'
         if (os.path.isfile(session_path) == False):
             os.mkdir(session_path)
             print(f'Created directory : {session_path}')
@@ -44,7 +44,7 @@ class PiShell(Cmd):
         global session_path
         if (inp == 'ts'):
             now = datetime.now()
-            dt_string = now.strftime("%m/%d/%Y-%H:%M:%S")
+            dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
             # Use Timestamp as image name
             image_path = session_path + dt_string + '.jpg'
         elif (inp == 'gps'):
