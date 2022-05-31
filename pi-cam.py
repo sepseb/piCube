@@ -1,7 +1,7 @@
+from distutils.command.config import config
 from email.policy import default
 from importlib.resources import path
 from ssl import SSLSession
-
 from matplotlib import use
 from picamera import PiCamera
 from datetime import datetime
@@ -10,10 +10,23 @@ from time import sleep
 from cmd import Cmd
 import subprocess
 import os
+import configparser
 
 # Set channels to the number of servo channels on your kit.
 # 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
-# kit = ServoKit(channels=16)
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+filter_name_1 = config['servo_config_file']['filter_name_1']
+filter_name_2 = config['servo_config_file']['filter_name_2']
+filter_name_3 = config['servo_config_file']['filter_name_3']
+servo_cmd_1 = config['servo_config_file']['servo_cmd_1']
+servo_cmd_2 = config['servo_config_file']['servo_cmd_2']
+servo_cmd_3 = config['servo_config_file']['servo_cmd_3']
+
+servo_installed = 0
+if (servo_installed == 1):
+    kit = ServoKit(channels=16)
 
 default_path = '/home/pi/Documents/'
 
@@ -37,9 +50,7 @@ class PiShell(Cmd):
     def do_new_session(self,inp):
         global session_path
         session_path =  default_path + inp + '/'
-        isFile = os.path.isfile(session_path)
-        print(isFile)
-        if (os.path.isfile(session_path) == False):
+        if (os.path.isdir(session_path) == False):
             os.mkdir(session_path)
             print(f'Created directory : {session_path}')
         else:
@@ -74,16 +85,35 @@ class PiShell(Cmd):
         print(f'If x = gps, filename is current lat_lon.jpg')
 
     def do_burst_mode(self, inp):
+        global session_path
         arg = parse(inp)
         for i in range(arg[0]):
             sleep(arg[1])
-            image_path = default_path + 'image%s.jpg'
+            now = datetime.now()
+            dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
+            image_path = session_path + dt_string + '.jpg'
             camera.capture(image_path % i)
 
     def help_burst_mode(self):
         print(f'Syntax : burst_mode x y')
         print(f'Captures total of x pictures; one picture every y seconds')
 
+    def do_filter(self, inp):
+        if (inp == filter_name_1):
+            #kit.servo[0].angle = servo_cmd_1
+            print(f'commanding servo to move to {servo_cmd_1}')
+        elif (inp == filter_name_2):
+            #kit.servo[0].angle = servo_cmd_2
+            print(f'commanding servo to move to {servo_cmd_2}')
+        elif (inp == filter_name_3):
+            #kit.servo[0].angle = servo_cmd_3
+            print(f'commanding servo to move to {servo_cmd_3}')
+    
+    def help_filter(self):
+        print(f'Syntax : filter x')
+        print(f'Rotate the filter wheel to the selected filter x')
+        print(f'Filter names : {filter_name_1}, {filter_name_2}, {filter_name_3}')
+    
     def do_transfer(self, inp):
         #to add later
         subprocess.run(["scp", 'FILE', "USER@SERVER:PATH"])
