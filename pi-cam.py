@@ -13,7 +13,7 @@ import os
 
 # Set channels to the number of servo channels on your kit.
 # 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
-kit = ServoKit(channels=16)
+# kit = ServoKit(channels=16)
 
 default_path = '/home/pi/Documents/'
 
@@ -37,6 +37,8 @@ class PiShell(Cmd):
     def do_new_session(self,inp):
         global session_path
         session_path =  default_path + inp + '/'
+        isFile = os.path.isfile(session_path)
+        print(isFile)
         if (os.path.isfile(session_path) == False):
             os.mkdir(session_path)
             print(f'Created directory : {session_path}')
@@ -45,7 +47,7 @@ class PiShell(Cmd):
             if (user_input == 'n'):
                 print(f'Please create a new session with a new name')
             else:
-                print(f'Using {session_path} as current session')     
+                print(f'Using {session_path} as current session')
 
 
     def help_new_session(self):
