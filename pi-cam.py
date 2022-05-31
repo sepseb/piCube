@@ -1,12 +1,19 @@
 from email.policy import default
 from importlib.resources import path
 from ssl import SSLSession
+
+from matplotlib import use
 from picamera import PiCamera
 from datetime import datetime
+from adafruit_servokit import ServoKit
 from time import sleep
 from cmd import Cmd
 import subprocess
 import os
+
+# Set channels to the number of servo channels on your kit.
+# 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
+kit = ServoKit(channels=16)
 
 default_path = '/home/pi/Documents/'
 
@@ -34,22 +41,28 @@ class PiShell(Cmd):
             os.mkdir(session_path)
             print(f'Created directory : {session_path}')
         else:
-            print(f'Directory Already Exists')
+            user_input = input ("Session already exists - Continue with old session? (y/n)?")
+            if (user_input == 'n'):
+                print(f'Please create a new session with a new name')
+            else:
+                print(f'Using {session_path} as current session')     
+
 
     def help_new_session(self):
         print(f'Syntax : new_session [folder name]')
         print(f'Creates a new folder in Documents')
 
     def do_capture(self,inp):
+
         global session_path
-        if (inp == 'ts'):
+        if not inp:
             now = datetime.now()
             dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
             # Use Timestamp as image name
             image_path = session_path + dt_string + '.jpg'
-        elif (inp == 'gps'):
-            # Use GPS location as image name - Future addition
-            image_path = session_path + 'gps.jpg'
+        else:
+            # Use input as image name - Future addition
+            image_path = session_path + inp + '.jpg'
         camera.capture(image_path)
 
     def help_capture(self):
@@ -75,8 +88,6 @@ class PiShell(Cmd):
 
     def help_transfer(self):
         print(f'Transfers images to the computer')
-
-      
 
 def parse(arg):
     'Convert a series of zero or more numbers to an argument tuple'
