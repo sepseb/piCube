@@ -91,9 +91,9 @@ class PiShell(Cmd):
         now = datetime.now()
         dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
         # Use Timestamp as image name
-        image_path = session_path + dt_string + '.data'
+        image_path = session_path + dt_string + '.jpg'
         camera.capture(image_path, 'yuv')
-        
+
     def help_cap(self):
         print(f'Syntax : cap x y')
         print(f'Manual Capture')
