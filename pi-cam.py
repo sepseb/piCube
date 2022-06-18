@@ -88,7 +88,6 @@ class PiShell(Cmd):
         global session_path
         arg = parse(inp)
         camera.iso = arg[0]
-        camera.exposure = arg[1]
         now = datetime.now()
         dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
         # Use Timestamp as image name
