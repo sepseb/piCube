@@ -66,7 +66,6 @@ class PiShell(Cmd):
         print(f'Creates a new folder in Documents')
 
     def do_capture(self,inp):
-
         global session_path
         if not inp:
             now = datetime.now()
@@ -83,6 +82,24 @@ class PiShell(Cmd):
         print(f'Captures one picture ')
         print(f'If x = ts, filename is current data_time.jpg')
         print(f'If x = gps, filename is current lat_lon.jpg')
+
+    def do_cap(self,inp):
+
+        global session_path
+        arg = parse(inp)
+        camera.iso = arg[0]
+        camera.exposure = arg[1]
+        now = datetime.now()
+        dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
+        # Use Timestamp as image name
+        image_path = session_path + dt_string + '.jpg'
+        camera.capture(image_path)
+
+    def help_cap(self):
+        print(f'Syntax : cap x y')
+        print(f'Manual Capture')
+        print(f'If x = iso')
+        print(f'If y = exposure')    
 
     def do_burst_mode(self, inp):
         global session_path
