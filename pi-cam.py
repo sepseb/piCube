@@ -76,12 +76,19 @@ class PiShell(Cmd):
             # Use input as image name - Future addition
             image_path = session_path + inp + '.jpg'    
         camera.capture(image_path)
+        print(f'Image Captured : {image_path}')
 
     def help_capture(self):
         print(f'Syntax : capture x')
         print(f'Captures one picture ')
         print(f'If x = ts, filename is current data_time.jpg')
         print(f'If x = gps, filename is current lat_lon.jpg')
+
+    def do_exp(self,inp):
+        camera.exposure_mode = inp
+
+    def help_exp(self):
+        print(f'Syntax : cap x y')
 
     def do_cap(self,inp):
 
@@ -93,12 +100,10 @@ class PiShell(Cmd):
         # Use Timestamp as image name
         image_path = session_path + dt_string + '.jpg'
         camera.capture(image_path)
+        print(f'Image Captured : {image_path}')
 
     def help_cap(self):
         print(f'Syntax : cap x y')
-        print(f'Manual Capture')
-        print(f'If x = iso')
-        print(f'If y = exposure')    
 
     def do_burst_mode(self, inp):
         global session_path
@@ -106,7 +111,7 @@ class PiShell(Cmd):
         for i in range(arg[0]):
             sleep(arg[1])
             now = datetime.now()
-            dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
+            dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
             image_path = session_path + dt_string + '.jpg'
             camera.capture(image_path % i)
 
