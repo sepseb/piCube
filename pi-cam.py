@@ -74,7 +74,7 @@ class PiShell(Cmd):
             image_path = session_path + dt_string + '.jpg'
         else:
             # Use input as image name - Future addition
-            image_path = session_path + inp + '.jpg'
+            image_path = session_path + inp + '.jpg'    
         camera.capture(image_path)
 
     def help_capture(self):
@@ -92,6 +92,7 @@ class PiShell(Cmd):
         dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
         # Use Timestamp as image name
         image_path = session_path + dt_string + '.jpg'
+        camera.exposure_mode = 'fireworks'
         camera.capture(image_path)
 
     def help_cap(self):
