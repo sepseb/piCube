@@ -69,7 +69,7 @@ class PiShell(Cmd):
         global session_path
         if not inp:
             now = datetime.now()
-            dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
+            dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
             # Use Timestamp as image name
             image_path = session_path + dt_string + '.jpg'
         else:
@@ -89,10 +89,9 @@ class PiShell(Cmd):
         arg = parse(inp)
         camera.iso = arg[0]
         now = datetime.now()
-        dt_string = now.strftime("%m-%d-%Y_%H:%M:%S")
+        dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
         # Use Timestamp as image name
         image_path = session_path + dt_string + '.jpg'
-        camera.exposure_mode = 'fireworks'
         camera.capture(image_path)
 
     def help_cap(self):
