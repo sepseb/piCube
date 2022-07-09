@@ -34,7 +34,7 @@ default_path = '/home/pi/Documents/'
 
 camera = PiCamera()
 picam_version = camera.revision
-camera.resolution = camera.MAX_RESOLUTION
+#camera.resolution = camera.MAX_RESOLUTION
 
 if (picam_version == 'ov5647'):
     print(f'Detected Camera Module v1')
@@ -45,13 +45,13 @@ elif (picam_version == 'imx477'):
 else:
     print(f'Camera Model Unknown or no camera detected')
 
-print(f'Camera resolution set to maximum {camera.resolution}')
+#print(f'Camera resolution set to maximum {camera.resolution}')
 
 class PiShell(Cmd):
 
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
-            "\n PiCube Interface Program v0.1.0"\
+            "\n PiCube Interface Program v0.1.1"\
             "\n Type help for a list of commands"\
             "\n Type exit to leave the program"\
 
