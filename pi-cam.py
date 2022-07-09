@@ -31,14 +31,28 @@ if (servo_installed == 1):
 default_path = '/home/pi/Documents/'
 
 camera = PiCamera()
+picam_version = camera.revision
+camera.resolution = camera.MAX_RESOLUTION
+
+if (picam_version == 'ov5647'):
+    print(f'Detected Camera Module v1')
+elif (picam_version == 'imx219'):
+    print(f'Detected Camera Module v2')
+elif (picam_version == 'imx477'):
+    print(f'Detected HQ Camera')
+else:
+    print(f'Camera Model Unknown or no camera detected')
+
+print(f'Camera Resolution set to maximum {camera.resolution}')
 
 class PiShell(Cmd):
 
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
-            "\n PiCube Interface Program"\
+            "\n PiCube Interface Program V 0.1.0"\
             "\n Type help for a list of commands"\
-            "\n Type exit to leave the program"
+            "\n Type exit to leave the program"\
+
 
     def do_exit(self,inp):
         # Add code to stop any running tasks with camera
@@ -88,7 +102,9 @@ class PiShell(Cmd):
         camera.exposure_mode = inp
 
     def help_exp(self):
-        print(f'Syntax : cap x y')
+        print(f'Syntax : exp [exposure mode]')
+        print(f'Exposure Modes: off, auto, night, backlight, ...')
+        print(f'spotlight,sports, snow, beach, verylong, fireworks')
 
     def do_cap(self,inp):
 
@@ -118,6 +134,17 @@ class PiShell(Cmd):
     def help_burst_mode(self):
         print(f'Syntax : burst_mode x y')
         print(f'Captures total of x pictures; one picture every y seconds')
+
+    def do_set_resolution(self, inp):
+        arg = parse(inp)
+        camera.resolution = (arg[0],arg[1])
+       
+    def help_set_resolution(self):
+        print(f'Syntax : set_resolution x y')
+        print(f'Sets the camera resolution to x by y')
+        print(f'Camera Module v1 Max Resolution is (2592x1944)')
+        print(f'Camera Module v2 Max Resolution is (32802464)')
+        print(f'HQ Camera Max Resolution is (4056x3040)')  
 
     def do_filter(self, inp):
         if (inp == filter_name_1):
