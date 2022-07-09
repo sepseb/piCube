@@ -5,7 +5,7 @@ from ssl import SSLSession
 from matplotlib import use
 from picamera import PiCamera
 from picamera.array import PiBayerArray
-from datetime import datetie
+from datetime import datetime
 from adafruit_servokit import ServoKit
 from time import sleep
 from cmd import Cmd
@@ -51,7 +51,7 @@ class PiShell(Cmd):
 
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
-            "\n PiCube Interface Program v0.1.1"\
+            "\n PiCube Interface Program v0.1.0"\
             "\n Type help for a list of commands"\
             "\n Type exit to leave the program"\
 
