@@ -5,7 +5,7 @@ from ssl import SSLSession
 from matplotlib import use
 from picamera import PiCamera
 from picamera.array import PiBayerArray
-from datetime import datetime
+from datetime import datetie
 from adafruit_servokit import ServoKit
 from time import sleep
 from cmd import Cmd
