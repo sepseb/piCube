@@ -34,7 +34,7 @@ default_path = '/home/pi/Documents/'
 
 camera = PiCamera()
 picam_version = camera.revision
-#camera.resolution = camera.MAX_RESOLUTION
+camera.resolution = camera.MAX_RESOLUTION
 
 if (picam_version == 'ov5647'):
     print(f'Detected Camera Module v1')
@@ -45,7 +45,7 @@ elif (picam_version == 'imx477'):
 else:
     print(f'Camera Model Unknown or no camera detected')
 
-#print(f'Camera resolution set to maximum {camera.resolution}')
+print(f'Camera resolution set to maximum {camera.resolution}')
 
 class PiShell(Cmd):
 
