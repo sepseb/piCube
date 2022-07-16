@@ -1,10 +1,5 @@
 from distutils.command.config import config
-from email.policy import default
-from importlib.resources import path
-from ssl import SSLSession
-from matplotlib import use
 from picamera import PiCamera
-from picamera.array import PiBayerArray
 from datetime import datetime
 from adafruit_servokit import ServoKit
 from time import sleep
@@ -12,7 +7,12 @@ from cmd import Cmd
 import subprocess
 import os
 import configparser
-import numpy as np
+import re
+import requests
+
+installed_release = '0.2.0'
+response = requests.get("https://api.github.com/repos/sepseb/piCube/releases")
+latest_release = response.json()[0]['tag_name']
 
 # Set channels to the number of servo channels on your kit.
 # 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
@@ -32,26 +32,11 @@ if (servo_installed == 1):
 
 default_path = '/home/pi/Documents/'
 
-camera = PiCamera()
-picam_version = camera.revision
-camera.resolution = camera.MAX_RESOLUTION
-
-if (picam_version == 'ov5647'):
-    print(f'Detected Camera Module v1')
-elif (picam_version == 'imx219'):
-    print(f'Detected Camera Module v2')
-elif (picam_version == 'imx477'):
-    print(f'Detected HQ Camera')
-else:
-    print(f'Camera Model Unknown or no camera detected')
-
-print(f'Camera resolution set to maximum {camera.resolution}')
-
 class PiShell(Cmd):
 
     prompt = 'PiCube $ '
     intro = "\n--------------------------------------"\
-            "\n PiCube Interface Program v0.1.0"\
+            "\n PiCube Interface Program v{current_version}"\
             "\n Type help for a list of commands"\
             "\n Type exit to leave the program"\
 
@@ -61,23 +46,6 @@ class PiShell(Cmd):
 
     def help_exit(self):
         print(f'Exit the program')
-
-    def do_cap_raw(self, inp):
-        global session_path
-        arg = parse(inp)
-        now = datetime.now()
-        dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
-        # Use Timestamp as image name
-        image_path = session_path + dt_string + '.raw'
-        with PiBayerArray(camera) as stream:
-            camera.capture(stream, 'jpeg', bayer=True)
-            output = (stream.demosaic() >> 2).astype(np.uint8)
-            with open(image_path, 'wb') as f:
-                output.tofile(f)
-       
-    def help_cap_raw(self):
-        print(f'Syntax : cap_raw')
-        print(f'Takes a raw image')
 
     def do_new_session(self,inp):
         global session_path
@@ -92,12 +60,11 @@ class PiShell(Cmd):
             else:
                 print(f'Using {session_path} as current session')
 
-
     def help_new_session(self):
         print(f'Syntax : new_session [folder name]')
         print(f'Creates a new folder in Documents')
 
-    def do_capture(self,inp):
+    def do_auto(self,inp):
         global session_path
         if not inp:
             now = datetime.now()
@@ -110,25 +77,22 @@ class PiShell(Cmd):
         camera.capture(image_path)
         print(f'Image Captured : {image_path}')
 
-    def help_capture(self):
-        print(f'Syntax : capture x')
+    def help_auto(self):
+        print(f'Syntax : auto x')
         print(f'Captures one picture ')
         print(f'If x = ts, filename is current data_time.jpg')
         print(f'If x = gps, filename is current lat_lon.jpg')
 
-    def do_exp(self,inp):
-        camera.exposure_mode = inp
-
-    def help_exp(self):
-        print(f'Syntax : exp [exposure mode]')
-        print(f'Exposure Modes: off, auto, night, backlight, ...')
-        print(f'spotlight,sports, snow, beach, verylong, fireworks')
-
-    def do_cap(self,inp):
-
+    def do_manual(self,inp):
         global session_path
-        arg = parse(inp)
-        camera.iso = arg[0]
+        inp += ' '
+        iso_value = re.search('--iso (.+?) ', inp)
+        ss_value = re.search('--shutter (.+?) ', inp)
+
+        camera.iso = int(iso_value.group(1))
+        camera.shutter_speed = int(ss_value.group(1))
+
+        camera.exposure_mode = 'off'
         now = datetime.now()
         dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
         # Use Timestamp as image name
@@ -136,26 +100,12 @@ class PiShell(Cmd):
         camera.capture(image_path)
         print(f'Image Captured : {image_path}')
 
-    def help_cap(self):
-        print(f'Syntax : cap x')
+    def help_manual(self):
+        print(f'Syntax : manual x')
         print(f'Where x is iso')
 
-    def do_burst_mode(self, inp):
-        global session_path
-        arg = parse(inp)
-        for i in range(arg[0]):
-            sleep(arg[1])
-            now = datetime.now()
-            dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
-            image_path = session_path + dt_string + '.jpg'
-            camera.capture(image_path % i)
-
-    def help_burst_mode(self):
-        print(f'Syntax : burst_mode x y')
-        print(f'Captures total of x pictures; one picture every y seconds')
-
     def do_set_resolution(self, inp):
-        arg = parse(inp)
+        arg = tuple(map(int, inp.split()))
         camera.resolution = (arg[0],arg[1])
        
     def help_set_resolution(self):
@@ -181,17 +131,54 @@ class PiShell(Cmd):
         print(f'Rotate the filter wheel to the selected filter x')
         print(f'Filter names : {filter_name_1}, {filter_name_2}, {filter_name_3}')
     
-    def do_transfer(self, inp):
-        #to add later
-        subprocess.run(["scp", 'FILE', "USER@SERVER:PATH"])
+    def do_transfer(inp):
+        global session_path
+        inp += ' '
+        ip_value = re.search('--ip (.+?) ', inp)
+        user_value = re.search('--user (.+?) ', inp)
+        scp_cmd = 'scp -r %s %s@%s:/C:/Users/%s/Desktop/' % \
+            (session_path, user_value.group(1), ip_value.group(1), user_value.group(1))
+        subprocess.run(scp_cmd)
 
     def help_transfer(self):
         print(f'Transfers images to the computer')
 
-def parse(arg):
-    'Convert a series of zero or more numbers to an argument tuple'
-    return tuple(map(int, arg.split()))
+def version_check(old_ver, new_ver):
+
+    old_ver_t = tuple(map(int, old_ver.split('.')))
+    new_ver_t = tuple(map(int, new_ver.split('.')))
+    for i in range(3):
+        diff =  new_ver_t[i] - old_ver_t[i]
+        if diff is 0:
+            continue
+        if diff > 0:
+            update = 'Released version %s is now available' % (new_ver)
+        else:
+            update = 'Developlment version installed'
+        return '%s' % (update)
+    return 'Latest released version installed'
+
+def detect_camera():
+
+    if (picam_version == 'ov5647'):
+        return ' Detected Camera Module v1'
+    elif (picam_version == 'imx219'):
+        return ' Detected Camera Module v2'
+    elif (picam_version == 'imx477'):
+        return ' Detected HQ Camera'
+    else:
+        return ' Camera Model Unknown or no camera detected'
+
+def setup_camera():
+    camera = PiCamera(framerate=30)
+    picam_version = camera.revision
+    camera.resolution = camera.MAX_RESOLUTION
+    return ' Camera resolution set to maximum : %s' % (camera.resolution)
 
 if __name__ == '__main__':
 
+    print(f'Starting Application...')
+    print(detect_camera())
+    print(setup_camera())
+    print(version_check(installed_release, latest_release))
     PiShell().cmdloop()
