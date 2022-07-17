@@ -1,21 +1,21 @@
+#!/usr/bin/python
+
 from distutils.command.config import config
-from email.policy import default
-from importlib.resources import path
-from ssl import SSLSession
-from matplotlib import use
+from time import sleep
 from picamera import PiCamera
-from picamera.array import PiBayerArray
 from datetime import datetime
 from adafruit_servokit import ServoKit
-from time import sleep
 from cmd import Cmd
 import subprocess
 import os
 import configparser
-import numpy as np
+import re
+import requests
+import sys
 
-# Set channels to the number of servo channels on your kit.
-# 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
+installed_release = '0.3.0'
+response = requests.get("https://api.github.com/repos/sepseb/piCube/releases")
+latest_release = response.json()[0]['tag_name']
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -26,137 +26,143 @@ servo_cmd_1 = config['servo_config_file']['servo_cmd_1']
 servo_cmd_2 = config['servo_config_file']['servo_cmd_2']
 servo_cmd_3 = config['servo_config_file']['servo_cmd_3']
 
-servo_installed = 0
-if (servo_installed == 1):
-    kit = ServoKit(channels=16)
-
 default_path = '/home/pi/Documents/'
-
-camera = PiCamera()
-picam_version = camera.revision
-camera.resolution = camera.MAX_RESOLUTION
-
-if (picam_version == 'ov5647'):
-    print(f'Detected Camera Module v1')
-elif (picam_version == 'imx219'):
-    print(f'Detected Camera Module v2')
-elif (picam_version == 'imx477'):
-    print(f'Detected HQ Camera')
-else:
-    print(f'Camera Model Unknown or no camera detected')
-
-print(f'Camera resolution set to maximum {camera.resolution}')
 
 class PiShell(Cmd):
 
-    prompt = 'PiCube $ '
-    intro = "\n--------------------------------------"\
-            "\n PiCube Interface Program v0.1.0"\
-            "\n Type help for a list of commands"\
-            "\n Type exit to leave the program"\
+    prompt = 'piCube $ '
+    intro = '-----------------------------------------'\
+            f'\n piCube Interface Program v{installed_release}'\
+            f'\n Type help for a list of commands'\
+            f'\n Type exit to leave the program'\
 
     def do_exit(self,inp):
         # Add code to stop any running tasks with camera
+        camera.close()
         return True
 
     def help_exit(self):
         print(f'Exit the program')
 
-    def do_cap_raw(self, inp):
-        global session_path
-        arg = parse(inp)
-        now = datetime.now()
-        dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
-        # Use Timestamp as image name
-        image_path = session_path + dt_string + '.raw'
-        with PiBayerArray(camera) as stream:
-            camera.capture(stream, 'jpeg', bayer=True)
-            output = (stream.demosaic() >> 2).astype(np.uint8)
-            with open(image_path, 'wb') as f:
-                output.tofile(f)
-       
-    def help_cap_raw(self):
-        print(f'Syntax : cap_raw')
-        print(f'Takes a raw image')
-
     def do_new_session(self,inp):
         global session_path
+        if not inp:
+            print("Syntax Error: No session name provided")
+            return
         session_path =  default_path + inp + '/'
-        if (os.path.isdir(session_path) == False):
+        try:
             os.mkdir(session_path)
             print(f'Created directory : {session_path}')
-        else:
-            user_input = input ("Session already exists - Continue with old session? (y/n)?")
-            if (user_input == 'n'):
-                print(f'Please create a new session with a new name')
-            else:
-                print(f'Using {session_path} as current session')
-
+        except:
+            while True:
+                user_input = input ("Session already exists - Continue with old session? (y/n)?")
+                if (user_input == 'n'):
+                    print(f'Please create a new session with a new name')
+                    break
+                elif (user_input == 'y'):
+                    print(f'Using {session_path} as current session')
+                    break
+                else:
+                    print(f'User input error')
+            return
 
     def help_new_session(self):
         print(f'Syntax : new_session [folder name]')
         print(f'Creates a new folder in Documents')
 
-    def do_capture(self,inp):
-        global session_path
+    def do_auto(self,inp):
+        try:
+            session_path
+        except:
+            print(f'Error: No new session was created')
+            return
         if not inp:
             now = datetime.now()
             dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
             # Use Timestamp as image name
-            image_path = session_path + dt_string + '.jpg'
+            image_path = session_path + 'auto_' + dt_string + '.jpg'
         else:
             # Use input as image name - Future addition
             image_path = session_path + inp + '.jpg'    
         camera.capture(image_path)
-        print(f'Image Captured : {image_path}')
+        print(f'Image captured to : {image_path}')
 
-    def help_capture(self):
-        print(f'Syntax : capture x')
-        print(f'Captures one picture ')
-        print(f'If x = ts, filename is current data_time.jpg')
-        print(f'If x = gps, filename is current lat_lon.jpg')
+    def help_auto(self):
+        print(f'Syntax : auto x')
+        print(f'Captures one picture with automatic settings')
+        print(f'If x is not defined, filename is current data_time.jpg')
+        print(f'If x is give a string, filename will be the string.jpg')
 
-    def do_exp(self,inp):
-        camera.exposure_mode = inp
+    def do_manual(self,inp):
+        try:
+            session_path
+        except:
+            print(f'Error: No new session was created')
+            return
+        # Parse the arguments
+        inp += ' '
+        iso_value = re.search('--iso (.+?) ', inp)
+        ss_value = re.search('--shutter (.+?) ', inp)
+        exp_comp_value = re.search('--exp (.+?) ', inp)
 
-    def help_exp(self):
-        print(f'Syntax : exp [exposure mode]')
-        print(f'Exposure Modes: off, auto, night, backlight, ...')
-        print(f'spotlight,sports, snow, beach, verylong, fireworks')
-
-    def do_cap(self,inp):
-
-        global session_path
-        arg = parse(inp)
-        camera.iso = arg[0]
+        # This section checks for which arguments have been input and if they are valid
+        if iso_value is None:
+            camera.iso = 0
+            print('Warning: No user input for iso - using auto')
+        else:
+            try:
+                camera.iso = int(iso_value.group(1))
+            except:
+                print(f'Invalid iso value: {int(iso_value.group(1))} (valid range 0..800)  - try a lower number')
+                return
+        if ss_value is None:
+            camera.shutter_speed = 0
+            print('Warning: No user input for shutter speed - auto')
+        else:
+            camera.shutter_speed = int(ss_value.group(1))
+        if exp_comp_value is None:
+            camera.exposure_compensation = 0
+            print('Warning: No user input for exposure compensation - using default value')
+        else:
+            try:
+                camera.exposure_compensation = int(exp_comp_value.group(1))
+            except:
+                print(f'Invalid exposure compensation value: {int(exp_comp_value.group(1))} (valid range -25..25) -  truncating...')
+                camera.exposure_compensation =(max(min(25, int(exp_comp_value.group(1))), -25))
+                
         now = datetime.now()
-        dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
+        dt_string = now.strftime("_%M-%S")
         # Use Timestamp as image name
-        image_path = session_path + dt_string + '.jpg'
+        properties = f'iso-{camera.iso}' + f'_shutter-{camera.shutter_speed}'
+        image_path = session_path + properties + dt_string + '.jpg'
+        if camera.iso == 0:
+            print(f'\nISO : auto')
+        else:
+            print(f'\nISO : {camera.iso}')
+        if camera.shutter_speed == 0:
+            print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed}) microseconds')
+        else:
+            print(f'Shutter speed : 1/{int(1000000/camera.shutter_speed)} ({camera.shutter_speed}) microseconds')
+        if camera.exposure_compensation != 0:
+            print(f'exposure compensation : {camera.exposure_compensation}')
         camera.capture(image_path)
-        print(f'Image Captured : {image_path}')
+        print(f'Image captured to : {image_path}\n')
 
-    def help_cap(self):
-        print(f'Syntax : cap x')
-        print(f'Where x is iso')
-
-    def do_burst_mode(self, inp):
-        global session_path
-        arg = parse(inp)
-        for i in range(arg[0]):
-            sleep(arg[1])
-            now = datetime.now()
-            dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
-            image_path = session_path + dt_string + '.jpg'
-            camera.capture(image_path % i)
-
-    def help_burst_mode(self):
-        print(f'Syntax : burst_mode x y')
-        print(f'Captures total of x pictures; one picture every y seconds')
+    def help_manual(self):
+        print(f'Syntax : manual --iso value --shutter value --exp value')
+        print(f'Captures one picture with manual settings')
+        print(f'If each of the three arguments is not entered, the camera will automatically adjust')
 
     def do_set_resolution(self, inp):
-        arg = parse(inp)
-        camera.resolution = (arg[0],arg[1])
+        if not inp:
+            print("Syntax Error: No resolution provided")
+            return
+        try:
+            arg = tuple(map(int, inp.split()))
+            camera.resolution = (arg[0],arg[1])
+            print(f'Camera Resolution set to : {arg[0]} x {arg[1]}')
+        except:
+            print('Error : incorrect resolution values')
        
     def help_set_resolution(self):
         print(f'Syntax : set_resolution x y')
@@ -180,18 +186,66 @@ class PiShell(Cmd):
         print(f'Syntax : filter x')
         print(f'Rotate the filter wheel to the selected filter x')
         print(f'Filter names : {filter_name_1}, {filter_name_2}, {filter_name_3}')
+
+def version_check(old_ver, new_ver):
+
+    old_ver_t = tuple(map(int, old_ver.split('.')))
+    new_ver_t = tuple(map(int, new_ver.split('.')))
+    for i in range(3):
+        diff =  new_ver_t[i] - old_ver_t[i]
+        if diff == 0:
+            continue
+        if diff > 0:
+            update = ' Released version %s is now available' % (new_ver)
+        else:
+            update = ' Development version installed'
+        return '%s' % (update)
+    return ' Latest released version installed'
+
+def detect_camera(picam_version):
+     
+    if (picam_version == 'ov5647'):
+        return ' Detected Camera Module v1'
+    elif (picam_version == 'imx219'):
+        return ' Detected Camera Module v2'
+    elif (picam_version == 'imx477'):
+        return ' Detected HQ Camera'
+    else:
+        return ' Camera Model Unknown or no camera detected'
     
-    def do_transfer(self, inp):
-        #to add later
-        subprocess.run(["scp", 'FILE', "USER@SERVER:PATH"])
+def camera_init(inp):
+    if not inp:
+        # Initiate camera with default sensor mode
+        camera = PiCamera()
+    else:
+        camera = PiCamera(sensor_mode = int(inp[0]))
+        print(f' Camera sensor mode set to : {int(inp[0])}')
 
-    def help_transfer(self):
-        print(f'Transfers images to the computer')
+    camera.framerate_range = (1, 30)
+    cam_model = camera.revision
+    print(detect_camera(cam_model))
+    camera.resolution = camera.MAX_RESOLUTION
+    print(f' Camera resolution set to : {camera.resolution}')
+    return camera
+    
+def servo_init():
+    # Set channels to the number of servo channels on your kit.
+    # 8 for FeatherWing, 16 for Shield/HAT/Bonnet.
+    kit = ServoKit(channels=16)
 
-def parse(arg):
-    'Convert a series of zero or more numbers to an argument tuple'
-    return tuple(map(int, arg.split()))
+def parse_argv(argv,type):
+    output = []
+    for i in range(0,len(argv)): 
+        for j in range(0,len(type)):
+            if argv[i] == type[j]:
+                output.append(argv[i+1])
+    return output
 
 if __name__ == '__main__':
-
+    print(f'Starting Application...')
+    arg_types = ['--mode','--firmware']
+    cmd_args = parse_argv(sys.argv[1:],arg_types)
+    camera = camera_init(cmd_args)
+    print(version_check(installed_release, latest_release[1:]))
+    #servo_init()
     PiShell().cmdloop()
