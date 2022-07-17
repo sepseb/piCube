@@ -186,6 +186,24 @@ class PiShell(Cmd):
         print(f'Syntax : filter x')
         print(f'Rotate the filter wheel to the selected filter x')
         print(f'Filter names : {filter_name_1}, {filter_name_2}, {filter_name_3}')
+    
+    def do_transfer(self, inp):
+        if not inp:
+            print("Syntax Error: No input provided")
+            return
+        try: 
+            inp += ' '
+            ip_value = re.search('--ip (.+?) ', inp)
+            user_value = re.search('--user (.+?) ', inp)
+            scp_cmd = 'scp -r %s %s@%s:/C:/Users/%s/Desktop/' % \
+                (session_path, user_value.group(1), ip_value.group(1), user_value.group(1))
+            subprocess.run(scp_cmd)
+        except:
+            print("Oops... Something went wrong")
+
+    def help_transfer(self):
+        print(f'transfer --ip <PC ip ad> --user <PC username>')
+        print(f'Transfers images to the computer')
 
 def version_check(old_ver, new_ver):
 
