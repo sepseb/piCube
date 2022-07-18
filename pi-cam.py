@@ -13,7 +13,7 @@ import re
 import requests
 import sys
 
-installed_release = '0.3.0'
+installed_release = '0.2.0'
 response = requests.get("https://api.github.com/repos/sepseb/piCube/releases")
 latest_release = response.json()[0]['tag_name']
 
