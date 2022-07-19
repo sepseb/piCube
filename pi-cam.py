@@ -79,7 +79,7 @@ class PiShell(Cmd):
 
         inp += ' '
         name_arg = re.search('--name (.+?) ', inp)
-        info_arg = re.search('-i (.+?) ', inp)
+        info_arg = re.search('-i', inp)
 
         if name_arg is None:
             now = datetime.now()
@@ -92,9 +92,13 @@ class PiShell(Cmd):
         if info_arg != None:
             print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed} microseconds)')
             if camera.revision == 'ov5647':
-                print(f'ISO : {camera.analog_gain}')
+                print(f'ISO : {int(camera.analog_gain*100)}')
+                print(f'analog gain : {float(camera.analog_gain)}')
+                print(f'digital gain : {float(camera.digital_gain)}\n')
             else:
-                print(f'ISO : {camera.analog_gain * 2.317}')
+                print(f'ISO : {int((camera.analog_gain/2.317)*100)}')
+                print(f'analog gain : {float(camera.analog_gain)}')
+                print(f'digital gain : {float(camera.digital_gain)}\n')
 
         camera.capture(image_path)
         print(f'Image captured to : {image_path}')
