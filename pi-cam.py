@@ -76,16 +76,29 @@ class PiShell(Cmd):
         except:
             print(f'Error: No new session was created')
             return
-        if not inp:
+
+        inp += ' '
+        name_arg = re.search('--name (.+?) ', inp)
+        info_arg = re.search('-i (.+?) ', inp)
+
+        if name_arg is None:
             now = datetime.now()
             dt_string = now.strftime("%m-%d-%Y_%H-%M-%S")
             # Use Timestamp as image name
             image_path = session_path + 'auto_' + dt_string + '.jpg'
         else:
             # Use input as image name - Future addition
-            image_path = session_path + inp + '.jpg'    
+            image_path = session_path + name_arg.group(1) + '.jpg'    
+        if info_arg != None:
+            print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed} microseconds)')
+            if camera.revision == 'ov5647':
+                print(f'ISO : {camera.analog_gain}')
+            else:
+                print(f'ISO : {camera.analog_gain * 2.317}')
+
         camera.capture(image_path)
         print(f'Image captured to : {image_path}')
+        
 
     def help_auto(self):
         print(f'Syntax : auto x')
@@ -140,9 +153,9 @@ class PiShell(Cmd):
         else:
             print(f'\nISO : {camera.iso}')
         if camera.shutter_speed == 0:
-            print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed}) microseconds')
+            print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed} microseconds)')
         else:
-            print(f'Shutter speed : 1/{int(1000000/camera.shutter_speed)} ({camera.shutter_speed}) microseconds')
+            print(f'Shutter speed : 1/{int(1000000/camera.shutter_speed)} ({camera.shutter_speed} microseconds)')
         if camera.exposure_compensation != 0:
             print(f'exposure compensation : {camera.exposure_compensation}')
         camera.capture(image_path)
