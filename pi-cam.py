@@ -13,7 +13,7 @@ import re
 import requests
 import sys
 
-installed_release = '0.3.0'
+installed_release = '0.4.0'
 response = requests.get("https://api.github.com/repos/sepseb/piCube/releases")
 latest_release = response.json()[0]['tag_name']
 
@@ -31,7 +31,7 @@ default_path = '/home/pi/Documents/'
 class PiShell(Cmd):
 
     prompt = 'piCube $ '
-    intro = '-----------------------------------------'\
+    intro = '---------------------------------------'\
             f'\n piCube Interface Program v{installed_release}'\
             f'\n Type help for a list of commands'\
             f'\n Type exit to leave the program'\
@@ -88,22 +88,13 @@ class PiShell(Cmd):
             image_path = session_path + 'auto_' + dt_string + '.jpg'
         else:
             # Use input as image name - Future addition
-            image_path = session_path + name_arg.group(1) + '.jpg'    
+            image_path = session_path + name_arg.group(1) + '.jpg' 
+        sleep(2)    
+        camera.capture(image_path)       
         if info_arg != None:
-            print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed} microseconds)')
-            if camera.revision == 'ov5647':
-                print(f'ISO : {int(camera.analog_gain*100)}')
-                print(f'analog gain : {float(camera.analog_gain)}')
-                print(f'digital gain : {float(camera.digital_gain)}\n')
-            else:
-                print(f'ISO : {int((camera.analog_gain/2.317)*100)}')
-                print(f'analog gain : {float(camera.analog_gain)}')
-                print(f'digital gain : {float(camera.digital_gain)}\n')
-
-        camera.capture(image_path)
+            print_meta()    
         print(f'Image captured to : {image_path}')
         
-
     def help_auto(self):
         print(f'Syntax : auto x')
         print(f'Captures one picture with automatic settings')
@@ -121,6 +112,8 @@ class PiShell(Cmd):
         iso_value = re.search('--iso (.+?) ', inp)
         ss_value = re.search('--shutter (.+?) ', inp)
         exp_comp_value = re.search('--exp (.+?) ', inp)
+        awb_params = re.search('--awb (.+?) ', inp)
+        burst_arg = re.search('--b (.+?) ', inp)
 
         # This section checks for which arguments have been input and if they are valid
         if iso_value is None:
@@ -129,6 +122,7 @@ class PiShell(Cmd):
         else:
             try:
                 camera.iso = int(iso_value.group(1))
+                # Wait for the automatic gain control to settle
             except:
                 print(f'Invalid iso value: {int(iso_value.group(1))} (valid range 0..800)  - try a lower number')
                 return
@@ -136,6 +130,7 @@ class PiShell(Cmd):
             camera.shutter_speed = 0
             print('Warning: No user input for shutter speed - auto')
         else:
+            camera.exposure_mode = 'off'
             camera.shutter_speed = int(ss_value.group(1))
         if exp_comp_value is None:
             camera.exposure_compensation = 0
@@ -146,29 +141,39 @@ class PiShell(Cmd):
             except:
                 print(f'Invalid exposure compensation value: {int(exp_comp_value.group(1))} (valid range -25..25) -  truncating...')
                 camera.exposure_compensation =(max(min(25, int(exp_comp_value.group(1))), -25))
-                
+        if awb_params is None:
+            print('Warning: No user input for white balance gains - using auto white balance')
+        else:
+            camera.awb_mode = 'off'
+            awb_tuple = tuple(map(float, awb_params.group(1).split(',')))
+            camera.awb_gains = awb_tuple
+
         now = datetime.now()
         dt_string = now.strftime("_%M-%S")
         # Use Timestamp as image name
         properties = f'iso-{camera.iso}' + f'_shutter-{camera.shutter_speed}'
         image_path = session_path + properties + dt_string + '.jpg'
-        if camera.iso == 0:
-            print(f'\nISO : auto')
+        if burst_arg is None:
+            sleep(2)
+            camera.capture(image_path)
+            print_meta()
+            print(f'Image captured to : {image_path}')
         else:
-            print(f'\nISO : {camera.iso}')
-        if camera.shutter_speed == 0:
-            print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed} microseconds)')
-        else:
-            print(f'Shutter speed : 1/{int(1000000/camera.shutter_speed)} ({camera.shutter_speed} microseconds)')
-        if camera.exposure_compensation != 0:
-            print(f'exposure compensation : {camera.exposure_compensation}')
-        camera.capture(image_path)
-        print(f'Image captured to : {image_path}\n')
-
+            now = datetime.now()
+            dt_string = now.strftime("%H-%M-%S")
+            burst_path = session_path + 'burst_' + dt_string + '/'
+            os.mkdir(burst_path)
+            for i in range (int(burst_arg.group(1))):
+                burst_name = burst_path + ('image%02d.jpg' %i )
+                camera.capture(burst_name)
+                print_meta()
+                print(f'Image captured to : {burst_name}')
+                sleep(2)
+        
     def help_manual(self):
-        print(f'Syntax : manual --iso value --shutter value --exp value')
+        print(f'Syntax : manual --iso value --shutter value --exp value --awb red,blue --b #ofbursts')
         print(f'Captures one picture with manual settings')
-        print(f'If each of the three arguments is not entered, the camera will automatically adjust')
+        print(f'If each of the four arguments is not entered, the camera will automatically adjust')
 
     def do_set_resolution(self, inp):
         if not inp:
@@ -178,15 +183,31 @@ class PiShell(Cmd):
             arg = tuple(map(int, inp.split()))
             camera.resolution = (arg[0],arg[1])
             print(f'Camera Resolution set to : {arg[0]} x {arg[1]}')
-        except:
+        except Exception as e:
             print('Error : incorrect resolution values')
-       
+            print(e) 
+            
     def help_set_resolution(self):
         print(f'Syntax : set_resolution x y')
         print(f'Sets the camera resolution to x by y')
         print(f'Camera Module v1 Max Resolution is (2592x1944)')
         print(f'Camera Module v2 Max Resolution is (32802464)')
         print(f'HQ Camera Max Resolution is (4056x3040)') 
+
+    def do_set_meter(self, inp):
+        if not inp:
+            print("Syntax Error: No mode provided")
+            user_input = input ("Type the desired mode - [average (default), spot, backlit, matrix] : ")
+        try:
+            camera.meter_mode = inp or user_input
+            print(f'Camera Meter Mode set to {camera.meter_mode}')
+        except Exception as e:
+            print(f'Error : {e}') 
+            
+    def help_set_meter(self):
+        print(f'Syntax : set_mode x')
+        print(f'Sets the camera meter mode')
+        print(f'Acceptable meter modes: average (default), spot, backlit, matrix')      
 
     def do_filter(self, inp):
         if (inp == filter_name_1):
@@ -215,12 +236,30 @@ class PiShell(Cmd):
             scp_cmd = 'scp -r %s %s@%s:/C:/Users/%s/Desktop/' % \
                 (session_path, user_value.group(1), ip_value.group(1), user_value.group(1))
             subprocess.run(scp_cmd)
-        except:
+        except Exception as e:
             print("Oops... Something went wrong")
+            print(e)  
 
     def help_transfer(self):
         print(f'transfer --ip <PC ip ad> --user <PC username>')
         print(f'Transfers images to the computer')
+
+def print_meta():
+    print('\nImage metadata:')
+    if camera.iso == 0:
+        print(f'ISO : auto')
+    else:
+            print(f'ISO : {camera.iso}')
+    if camera.shutter_speed == 0:
+            print(f'Exposure time : 1/{int(1000000/camera.exposure_speed)} ({camera.exposure_speed} microseconds)')
+    else:
+            print(f'Shutter speed : 1/{int(1000000/camera.shutter_speed)} ({camera.shutter_speed} microseconds)')
+    if camera.exposure_compensation != 0:
+            print(f'exposure compensation : {camera.exposure_compensation}')
+    print(f'awb gains - [red_gain : {"{:.2f}".format(float(camera.awb_gains[0]))}, blue_gain : {"{:.2f}".format(float(camera.awb_gains[1]))}]')  
+    print(f'analog gain : {"{:.2f}".format(float(camera.analog_gain))}')
+    print(f'digital gain : {"{:.2f}".format(float(camera.digital_gain))}')    
+    print(f'meter mode : {camera.meter_mode}')  
 
 def version_check(old_ver, new_ver):
 
